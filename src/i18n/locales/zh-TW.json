@@ -350,7 +350,8 @@
       "beta": "Beta",
       "copilotDescription": "管理 GitHub Copilot 帳號",
       "codexOauthDescription": "管理 ChatGPT 帳號",
-      "xaiOauthDescription": "管理 xAI / Grok 帳號"
+      "xaiOauthDescription": "管理 xAI / Grok 帳號",
+      "googleOauthDescription": "管理 Google / Gemini 帳號"
     },
     "advanced": {
       "configDir": {
@@ -1452,6 +1453,31 @@
     "retry": "重試",
     "logoutAll": "移除所有 xAI 帳號",
     "loginRequired": "請先登入 xAI 帳號"
+  },
+  "googleOauth": {
+    "authStatus": "Google AI OAuth 驗證",
+    "accountCount": "{{count}} 個可用帳號",
+    "reauthRequired": "需要重新登入",
+    "notAuthenticated": "尚未驗證",
+    "selectAccount": "選擇帳號",
+    "selectAccountPlaceholder": "選擇 Google 帳號",
+    "useDefaultAccount": "使用預設帳號",
+    "accounts": "Google 帳號",
+    "defaultAccount": "預設",
+    "expired": "憑證已失效",
+    "setAsDefault": "設為預設",
+    "removeAccount": "移除帳號",
+    "addOrReauth": "新增帳號或重新登入",
+    "login": "使用 Google 登入",
+    "importFromGeminiCli": "從 Gemini CLI 匯入",
+    "importLocalTooltip": "從已安裝的 Gemini CLI 讀取登入憑證",
+    "importSuccess": "成功匯入 Google 帳號: {{name}}",
+    "importFailed": "匯入失敗: {{error}}",
+    "waitingForAuth": "正在等待 Google 授權…",
+    "enterCode": "若瀏覽器未自動填入，請輸入：",
+    "retry": "重試",
+    "logoutAll": "移除所有 Google 帳號",
+    "loginRequired": "請先登入 Google 帳號"
   },
   "managedAuth": {
     "accountRemoved": "帳號已移除",

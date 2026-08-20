@@ -191,3 +191,26 @@ export function useXaiOauthQuota(
 
   return useQuotaKeepLastGood(query, accountId ?? "default");
 }
+
+/**
+ * 查询 Google OAuth (Gemini / Google AI 反代) 订阅额度的 React Query Hook
+ */
+export function useGoogleOauthQuota(
+  meta: ProviderMeta | undefined,
+  options: UseCodexOauthQuotaOptions = {},
+) {
+  const { enabled = true, autoQuery = false } = options;
+  const accountId = resolveManagedAccountId(meta, PROVIDER_TYPES.GOOGLE_OAUTH);
+  const query = useQuery({
+    queryKey: ["google_oauth", "quota", accountId ?? "default"],
+    queryFn: () => subscriptionApi.getGoogleOauthQuota(accountId),
+    enabled,
+    refetchInterval: autoQuery ? REFETCH_INTERVAL : false,
+    refetchIntervalInBackground: autoQuery,
+    refetchOnWindowFocus: autoQuery,
+    staleTime: REFETCH_INTERVAL,
+    retry: 1,
+  });
+
+  return useQuotaKeepLastGood(query, accountId ?? "default");
+}

@@ -28,6 +28,10 @@ vi.mock("@/components/providers/forms/CopilotAuthSection", () => ({
 vi.mock("@/components/providers/forms/XaiOAuthSection", () => ({
   XaiOAuthSection: () => <div />,
 }));
+vi.mock("@/components/providers/forms/GoogleOAuthSection", () => ({
+  GoogleOAuthSection: () => <div />,
+}));
+
 
 describe("CodexOAuthSection", () => {
   let scrollIntoViewDescriptor: PropertyDescriptor | undefined;

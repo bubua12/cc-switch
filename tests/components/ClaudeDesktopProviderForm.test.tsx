@@ -45,6 +45,10 @@ vi.mock("@/components/providers/forms/hooks", async (importOriginal) => {
       isAuthenticated: false,
       accounts: [],
     }),
+    useGoogleOauth: () => ({
+      isAuthenticated: false,
+      accounts: [],
+    }),
   };
 });
 
@@ -59,6 +63,10 @@ vi.mock("@/components/providers/forms/CopilotAuthSection", () => ({
 vi.mock("@/components/providers/forms/XaiOAuthSection", () => ({
   XaiOAuthSection: () => <div data-testid="xai-oauth-section" />,
 }));
+vi.mock("@/components/providers/forms/GoogleOAuthSection", () => ({
+  GoogleOAuthSection: () => <div data-testid="google-oauth-section" />,
+}));
+
 
 vi.mock("@/lib/api/providers", () => ({
   providersApi: {

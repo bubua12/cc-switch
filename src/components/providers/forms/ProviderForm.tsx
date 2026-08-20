@@ -114,6 +114,7 @@ import {
   useCopilotAuth,
   useCodexOauth,
   useXaiOauth,
+  useGoogleOauth,
 } from "./hooks";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useSettingsQuery } from "@/lib/query";
@@ -144,11 +145,12 @@ type PresetEntry = {
 
 function getPresetProviderType(
   preset: PresetEntry["preset"] | null | undefined,
-): "github_copilot" | "codex_oauth" | "xai_oauth" | undefined {
+): "github_copilot" | "codex_oauth" | "xai_oauth" | "google_oauth" | undefined {
   if (!preset || !("providerType" in preset)) return undefined;
   return preset.providerType === "github_copilot" ||
     preset.providerType === "codex_oauth" ||
-    preset.providerType === "xai_oauth"
+    preset.providerType === "xai_oauth" ||
+    preset.providerType === "google_oauth"
     ? preset.providerType
     : undefined;
 }
@@ -592,6 +594,10 @@ function ProviderFormFull({
     isAuthenticated: isXaiOauthAuthenticated,
     accounts: xaiOauthAccounts,
   } = useXaiOauth();
+  const {
+    isAuthenticated: isGoogleOauthAuthenticated,
+    accounts: googleOauthAccounts,
+  } = useGoogleOauth();
 
   // 选中的 GitHub 账号 ID（多账号支持）
   const [selectedGitHubAccountId, setSelectedGitHubAccountId] = useState<
@@ -607,6 +613,9 @@ function ProviderFormFull({
   const [selectedXaiAccountId, setSelectedXaiAccountId] = useState<
     string | null
   >(() => resolveManagedAccountId(initialData?.meta, "xai_oauth"));
+  const [selectedGoogleAccountId, setSelectedGoogleAccountId] = useState<
+    string | null
+  >(() => resolveManagedAccountId(initialData?.meta, "google_oauth"));
   const [codexFastMode, setCodexFastMode] = useState<boolean>(
     () => initialData?.meta?.codexFastMode ?? false,
   );
@@ -804,6 +813,9 @@ function ProviderFormFull({
   const isXaiOauthProvider =
     (appId === "claude" || appId === "codex") &&
     (presetProviderType === "xai_oauth" || initialProviderType === "xai_oauth");
+  const isGoogleOauthProvider =
+    (appId === "claude" || appId === "codex" || appId === "gemini") &&
+    (presetProviderType === "google_oauth" || initialProviderType === "google_oauth");
   const wasCodexOfficialManagedOauthBound =
     appId === "codex" &&
     Boolean(resolveManagedAccountId(initialData?.meta, "codex_oauth"));
@@ -1319,6 +1331,14 @@ function ProviderFormFull({
       );
       return;
     }
+    if (isGoogleOauthProvider && !isGoogleOauthAuthenticated) {
+      toast.error(
+        t("googleOauth.loginRequired", {
+          defaultValue: "请先登录 Google 账号",
+        }),
+      );
+      return;
+    }
 
     const selectedAccountExists = (
       accountId: string | null,
@@ -1343,6 +1363,11 @@ function ProviderFormFull({
     const selectedXaiAccountIsUsable = (accountId: string | null) =>
       accountId === null ||
       xaiOauthAccounts.some(
+        (account) => account.id === accountId && !account.requires_reauth,
+      );
+    const selectedGoogleAccountIsUsable = (accountId: string | null) =>
+      accountId === null ||
+      googleOauthAccounts.some(
         (account) => account.id === accountId && !account.requires_reauth,
       );
     if (
@@ -1374,6 +1399,17 @@ function ProviderFormFull({
       toast.error(
         t("managedAuth.selectedAccountNeedsReauth", {
           defaultValue: "已绑定 xAI 账号不存在或需要重新登录",
+        }),
+      );
+      return;
+    }
+    if (
+      isGoogleOauthProvider &&
+      !selectedGoogleAccountIsUsable(selectedGoogleAccountId)
+    ) {
+      toast.error(
+        t("managedAuth.selectedAccountNeedsReauth", {
+          defaultValue: "已绑定账号不存在或需要重新登录",
         }),
       );
       return;
@@ -1417,6 +1453,7 @@ function ProviderFormFull({
         if (
           !isClaudeCodexOauthProvider &&
           !isXaiOauthProvider &&
+          !isGoogleOauthProvider &&
           !baseUrl.trim()
         ) {
           issues.push(
@@ -1429,6 +1466,7 @@ function ProviderFormFull({
           !isCopilotProvider &&
           !isClaudeCodexOauthProvider &&
           !isXaiOauthProvider &&
+          !isGoogleOauthProvider &&
           !apiKey.trim()
         ) {
           issues.push(
@@ -1440,14 +1478,14 @@ function ProviderFormFull({
       } else if (appId === "codex") {
         // 托管 OAuth 预设（xAI）：端点由 adapter 硬定向、token 由代理注入，
         // 两项都不需要用户填写
-        if (!isXaiOauthProvider && !codexBaseUrl.trim()) {
+        if (!isXaiOauthProvider && !isGoogleOauthProvider && !codexBaseUrl.trim()) {
           issues.push(
             t("providerForm.endpointRequired", {
               defaultValue: "非官方供应商请填写 API 端点",
             }),
           );
         }
-        if (!isXaiOauthProvider && !codexApiKey.trim()) {
+        if (!isXaiOauthProvider && !isGoogleOauthProvider && !codexApiKey.trim()) {
           issues.push(
             t("providerForm.apiKeyRequired", {
               defaultValue: "非官方供应商请填写 API Key",
@@ -1709,7 +1747,9 @@ function ProviderFormFull({
         ? "codex_oauth"
         : isXaiOauthProvider
           ? "xai_oauth"
-          : undefined;
+          : isGoogleOauthProvider
+            ? "google_oauth"
+            : undefined;
 
     const nextMeta: ProviderMeta = {
       ...(baseMeta ?? {}),
@@ -1749,7 +1789,13 @@ function ProviderFormFull({
                   authProvider: "xai_oauth",
                   accountId: selectedXaiAccountId ?? undefined,
                 }
-              : undefined,
+              : isGoogleOauthProvider
+                ? {
+                    source: "managed_account",
+                    authProvider: "google_oauth",
+                    accountId: selectedGoogleAccountId ?? undefined,
+                  }
+                : undefined,
       // GitHub Copilot 多账号：保存关联的账号 ID
       githubAccountId:
         isCopilotProvider && selectedGitHubAccountId
@@ -1787,11 +1833,15 @@ function ProviderFormFull({
         appId === "claude" && category !== "official"
           ? isXaiOauthProvider
             ? "openai_responses"
-            : localApiFormat
+            : isGoogleOauthProvider
+              ? "gemini_native"
+              : localApiFormat
           : appId === "codex" && category !== "official"
             ? isXaiOauthProvider
               ? "openai_responses"
-              : localCodexApiFormat
+              : isGoogleOauthProvider
+                ? "openai_chat"
+                : localCodexApiFormat
             : undefined,
       apiKeyField:
         appId === "claude" &&
@@ -1825,6 +1875,7 @@ function ProviderFormFull({
         supportsFullUrl &&
         category !== "official" &&
         !isXaiOauthProvider &&
+        !isGoogleOauthProvider &&
         localIsFullUrl
           ? true
           : undefined,
@@ -2376,11 +2427,13 @@ function ProviderFormFull({
               isCopilotPreset={isCopilotProvider}
               isCodexOauthPreset={isClaudeCodexOauthProvider}
               isXaiOauthPreset={isXaiOauthProvider}
+              isGoogleOauthPreset={isGoogleOauthProvider}
               usesOAuth={
                 templatePreset?.requiresOAuth === true ||
                 isCopilotProvider ||
                 isClaudeCodexOauthProvider ||
-                isXaiOauthProvider
+                isXaiOauthProvider ||
+                isGoogleOauthProvider
               }
               isCopilotAuthenticated={isCopilotAuthenticated}
               selectedGitHubAccountId={selectedGitHubAccountId}
@@ -2394,6 +2447,9 @@ function ProviderFormFull({
               isXaiOauthAuthenticated={isXaiOauthAuthenticated}
               selectedXaiAccountId={selectedXaiAccountId}
               onXaiAccountSelect={setSelectedXaiAccountId}
+              isGoogleOauthAuthenticated={isGoogleOauthAuthenticated}
+              selectedGoogleAccountId={selectedGoogleAccountId}
+              onGoogleAccountSelect={setSelectedGoogleAccountId}
               templateValueEntries={templateValueEntries}
               templateValues={templateValues}
               templatePresetName={templatePreset?.name || ""}
@@ -2447,6 +2503,13 @@ function ProviderFormFull({
               isXaiOauthAuthenticated={isXaiOauthAuthenticated}
               selectedXaiAccountId={selectedXaiAccountId}
               onXaiAccountSelect={setSelectedXaiAccountId}
+              isGoogleOauthPreset={
+                presetProviderType === "google_oauth" ||
+                initialData?.meta?.providerType === "google_oauth"
+              }
+              isGoogleOauthAuthenticated={isGoogleOauthAuthenticated}
+              selectedGoogleAccountId={selectedGoogleAccountId}
+              onGoogleAccountSelect={setSelectedGoogleAccountId}
               codexApiKey={codexApiKey}
               onApiKeyChange={handleCodexApiKeyChange}
               category={category}

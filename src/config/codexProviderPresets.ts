@@ -34,7 +34,7 @@ export interface CodexProviderPreset {
   // Codex API 格式
   apiFormat?: CodexApiFormat;
   // 仅用于区分预设来源；ChatGPT/Codex 与 xAI/Grok 的认证流程彼此独立。
-  providerType?: "codex_oauth" | "xai_oauth";
+  providerType?: "codex_oauth" | "xai_oauth" | "google_oauth";
   // OAuth 预设：隐藏 API Key 输入，保存前要求已登录托管账号
   requiresOAuth?: boolean;
   // Codex Chat 本地路由模式下的模型目录
@@ -1824,6 +1824,45 @@ requires_openai_auth = true`,
     category: "third_party",
     icon: "xai",
     iconColor: "#000000",
+  },
+  {
+    name: "Google Gemini (OAuth)",
+    websiteUrl: "https://ai.google.dev",
+    auth: generateThirdPartyAuth(""),
+    config: generateThirdPartyConfig(
+      "gemini",
+      "https://generativelanguage.googleapis.com",
+      "gemini-2.5-pro",
+    ),
+    apiFormat: "openai_chat",
+    providerType: "google_oauth",
+    requiresOAuth: true,
+    modelCatalog: modelCatalog([
+      {
+        model: "gemini-2.5-pro",
+        displayName: "Gemini 2.5 Pro",
+        contextWindow: 1000000,
+        supportsParallelToolCalls: true,
+        inputModalities: ["text", "image"],
+      },
+      {
+        model: "gemini-2.5-flash",
+        displayName: "Gemini 2.5 Flash",
+        contextWindow: 1000000,
+        supportsParallelToolCalls: true,
+        inputModalities: ["text", "image"],
+      },
+      {
+        model: "gemini-3.7-flash",
+        displayName: "Gemini 3.7 Flash",
+        contextWindow: 1000000,
+        supportsParallelToolCalls: true,
+        inputModalities: ["text", "image"],
+      },
+    ]),
+    category: "official",
+    icon: "gemini",
+    iconColor: "#4285F4",
   },
   {
     name: "Nvidia",

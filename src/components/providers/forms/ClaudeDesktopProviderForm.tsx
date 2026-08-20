@@ -27,6 +27,7 @@ import { BasicFormFields } from "./BasicFormFields";
 import { CodexOAuthSection } from "./CodexOAuthSection";
 import { CopilotAuthSection } from "./CopilotAuthSection";
 import { XaiOAuthSection } from "./XaiOAuthSection";
+import { GoogleOAuthSection } from "./GoogleOAuthSection";
 import { ApiKeySection } from "./shared/ApiKeySection";
 import { EndpointField } from "./shared/EndpointField";
 import { ModelDropdown } from "./shared/ModelDropdown";
@@ -57,7 +58,7 @@ import {
 } from "@/lib/api/providers";
 import { resolveManagedAccountId } from "@/lib/authBinding";
 import type { ManagedAuthProvider } from "@/lib/api";
-import { useCopilotAuth, useCodexOauth, useXaiOauth } from "./hooks";
+import { useCopilotAuth, useCodexOauth, useXaiOauth, useGoogleOauth } from "./hooks";
 import { isOAuthProviderType } from "@/config/constants";
 
 export type ClaudeDesktopProviderFormValues = ProviderFormData & {
@@ -277,6 +278,9 @@ export function ClaudeDesktopProviderForm({
   const [selectedXaiAccountId, setSelectedXaiAccountId] = useState<
     string | null
   >(() => resolveManagedAccountId(initialData?.meta, "xai_oauth"));
+  const [selectedGoogleAccountId, setSelectedGoogleAccountId] = useState<
+    string | null
+  >(() => resolveManagedAccountId(initialData?.meta, "google_oauth"));
   const [codexFastMode, setCodexFastMode] = useState<boolean>(
     () => initialData?.meta?.codexFastMode ?? false,
   );
@@ -386,6 +390,10 @@ export function ClaudeDesktopProviderForm({
     isAuthenticated: isXaiOauthAuthenticated,
     accounts: xaiOauthAccounts,
   } = useXaiOauth();
+  const {
+    isAuthenticated: isGoogleOauthAuthenticated,
+    accounts: googleOauthAccounts,
+  } = useGoogleOauth();
   const isOfficial =
     initialData?.category === "official" ||
     activePreset?.category === "official";
@@ -631,6 +639,11 @@ export function ClaudeDesktopProviderForm({
       xaiOauthAccounts.some(
         (account) => account.id === accountId && !account.requires_reauth,
       );
+    const selectedGoogleAccountIsUsable = (accountId: string | null) =>
+      accountId === null ||
+      googleOauthAccounts.some(
+        (account) => account.id === accountId && !account.requires_reauth,
+      );
     const managedAuthState =
       activeProviderType === "github_copilot"
         ? {
@@ -659,6 +672,15 @@ export function ClaudeDesktopProviderForm({
                   defaultValue: "请先登录 xAI 账号",
                 }),
               }
+        : activeProviderType === "google_oauth"
+          ? {
+              authenticated: isGoogleOauthAuthenticated,
+              accountId: selectedGoogleAccountId,
+              accounts: googleOauthAccounts,
+              loginMessage: t("googleOauth.loginRequired", {
+                defaultValue: "请先登录 Google 账号",
+              }),
+            }
             : null;
     if (managedAuthState && !managedAuthState.authenticated) {
       toast.error(managedAuthState.loginMessage);
@@ -669,12 +691,14 @@ export function ClaudeDesktopProviderForm({
         ? selectedCodexAccountIsUsable(selectedCodexAccountId)
         : activeProviderType === "xai_oauth"
           ? selectedXaiAccountIsUsable(selectedXaiAccountId)
-          : managedAuthState
-            ? selectedAccountExists(
-                managedAuthState.accountId,
-                managedAuthState.accounts,
-              )
-            : true;
+          : activeProviderType === "google_oauth"
+            ? selectedGoogleAccountIsUsable(selectedGoogleAccountId)
+            : managedAuthState
+              ? selectedAccountExists(
+                  managedAuthState.accountId,
+                  managedAuthState.accounts,
+                )
+              : true;
     if (managedAuthState && !selectedManagedAccountIsUsable) {
       toast.error(
         t("managedAuth.selectedAccountUnavailable", {
@@ -777,11 +801,12 @@ export function ClaudeDesktopProviderForm({
       apiFormat:
         activeProviderType === "xai_oauth"
           ? "openai_responses"
-          : effectiveMode === "proxy"
-            ? apiFormat
-            : "anthropic",
+          : activeProviderType === "google_oauth"
+            ? "gemini_native"
+            : effectiveMode === "proxy"
+              ? apiFormat
+              : "anthropic",
     };
-
     meta.claudeDesktopModelRoutes = routeMap;
     meta.providerType = activeProviderType;
     meta.authBinding =
@@ -803,6 +828,12 @@ export function ClaudeDesktopProviderForm({
                 authProvider: "xai_oauth",
                 accountId: selectedXaiAccountId ?? undefined,
               }
+        : activeProviderType === "google_oauth"
+          ? {
+              source: "managed_account",
+              authProvider: "google_oauth",
+              accountId: selectedGoogleAccountId ?? undefined,
+            }
             : undefined;
     meta.codexFastMode =
       activeProviderType === "codex_oauth" ? codexFastMode : undefined;
@@ -912,10 +943,15 @@ export function ClaudeDesktopProviderForm({
                     fastModeEnabled={codexFastMode}
                     onFastModeChange={setCodexFastMode}
                   />
-                ) : (
+                ) : activeProviderType === "xai_oauth" ? (
                   <XaiOAuthSection
                     selectedAccountId={selectedXaiAccountId}
                     onAccountSelect={setSelectedXaiAccountId}
+                  />
+                ) : (
+                  <GoogleOAuthSection
+                    selectedAccountId={selectedGoogleAccountId}
+                    onAccountSelect={setSelectedGoogleAccountId}
                   />
                 )}
               </div>
@@ -1012,7 +1048,7 @@ export function ClaudeDesktopProviderForm({
 
               {needsModelMapping && (
                 <div className="space-y-4 border-t border-border-default pt-4">
-                  {activeProviderType !== "xai_oauth" && (
+                  {activeProviderType !== "xai_oauth" && activeProviderType !== "google_oauth" && (
                     <div className="space-y-2">
                       <Label>
                         {t("providerForm.apiFormat", {

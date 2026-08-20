@@ -3,6 +3,7 @@ use tauri::{Emitter, Manager, State};
 
 use crate::app_config::AppType;
 use crate::commands::copilot::CopilotAuthState;
+use crate::commands::google_oauth::GoogleOAuthState;
 use crate::commands::xai_oauth::XaiOAuthState;
 use crate::error::AppError;
 use crate::provider::{ClaudeDesktopMode, Provider};
@@ -348,7 +349,7 @@ pub(crate) fn suggested_claude_desktop_routes(
             .meta
             .as_ref()
             .and_then(|meta| meta.provider_type.as_deref()),
-        Some("github_copilot") | Some("codex_oauth") | Some("xai_oauth")
+        Some("github_copilot") | Some("codex_oauth") | Some("xai_oauth") | Some("google_oauth")
     );
 
     fn add_route(
@@ -459,6 +460,7 @@ pub async fn queryProviderUsage(
     state: State<'_, AppState>,
     copilot_state: State<'_, CopilotAuthState>,
     xai_state: State<'_, XaiOAuthState>,
+    google_state: State<'_, GoogleOAuthState>,
     #[allow(non_snake_case)] providerId: String, // 使用 camelCase 匹配前端
     app: String,
 ) -> Result<crate::provider::UsageResult, String> {
@@ -475,6 +477,7 @@ pub async fn queryProviderUsage(
         &state,
         &copilot_state,
         &xai_state,
+        &google_state,
         app_type.clone(),
         &providerId,
     )
@@ -545,6 +548,7 @@ async fn query_provider_usage_inner(
     state: &AppState,
     copilot_state: &CopilotAuthState,
     xai_state: &XaiOAuthState,
+    google_state: &GoogleOAuthState,
     app_type: AppType,
     provider_id: &str,
 ) -> Result<crate::provider::UsageResult, String> {
@@ -721,6 +725,11 @@ async fn query_provider_usage_inner(
                 .and_then(|p| p.meta.as_ref())
                 .and_then(|m| m.managed_account_id_for("xai_oauth"));
             crate::commands::xai_oauth::query_xai_oauth_quota_for(xai_state, account_id).await?
+        } else if provider.map(Provider::is_google_oauth).unwrap_or(false) {
+            let account_id = provider
+                .and_then(|p| p.meta.as_ref())
+                .and_then(|m| m.managed_account_id_for("google_oauth"));
+            crate::commands::google_oauth::query_google_oauth_quota_for(google_state, account_id).await?
         } else {
             crate::services::subscription::get_subscription_quota(app_type.as_str())
                 .await

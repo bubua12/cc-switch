@@ -1169,6 +1169,18 @@ pub fn run() {
                 log::info!("✓ XaiOAuthManager initialized");
             }
 
+            // 初始化 Google OAuthManager (Gemini API 反代)
+            {
+                use crate::proxy::providers::google_oauth_auth::GoogleOAuthManager;
+                use commands::GoogleOAuthState;
+                use tokio::sync::RwLock;
+
+                let app_config_dir = crate::config::get_app_config_dir();
+                let google_oauth_manager = GoogleOAuthManager::new(app_config_dir);
+                app.manage(GoogleOAuthState(Arc::new(RwLock::new(google_oauth_manager))));
+                log::info!("✓ GoogleOAuthManager initialized");
+            }
+
             // 初始化全局出站代理 HTTP 客户端
             {
                 let db = &app.state::<AppState>().db;
@@ -1432,6 +1444,9 @@ pub fn run() {
             commands::get_codex_oauth_models,
             commands::get_xai_oauth_models,
             commands::get_xai_oauth_quota,
+            commands::get_google_oauth_models,
+            commands::get_google_oauth_quota,
+            commands::import_google_oauth_local_credentials,
             commands::get_coding_plan_quota,
             commands::get_balance,
             // New MCP via config.json (SSOT)

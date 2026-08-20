@@ -350,7 +350,8 @@
       "beta": "Beta",
       "copilotDescription": "Manage GitHub Copilot accounts",
       "codexOauthDescription": "Manage ChatGPT accounts",
-      "xaiOauthDescription": "Manage xAI / Grok accounts"
+      "xaiOauthDescription": "Manage xAI / Grok accounts",
+      "googleOauthDescription": "Manage Google / Gemini accounts"
     },
     "advanced": {
       "configDir": {
@@ -1451,6 +1452,31 @@
     "retry": "Retry",
     "logoutAll": "Remove all xAI accounts",
     "loginRequired": "Sign in to an xAI account first"
+  },
+  "googleOauth": {
+    "authStatus": "Google AI OAuth authentication",
+    "accountCount": "Usable accounts: {{count}}",
+    "reauthRequired": "Sign-in required",
+    "notAuthenticated": "Not signed in",
+    "selectAccount": "Select account",
+    "selectAccountPlaceholder": "Select a Google account",
+    "useDefaultAccount": "Use default account",
+    "accounts": "Google accounts",
+    "defaultAccount": "Default",
+    "expired": "Credentials expired",
+    "setAsDefault": "Set as default",
+    "removeAccount": "Remove account",
+    "addOrReauth": "Add account or re-authenticate",
+    "login": "Sign in with Google",
+    "importFromGeminiCli": "Import from Gemini CLI",
+    "importLocalTooltip": "Read credentials from installed Gemini CLI",
+    "importSuccess": "Successfully imported Google account: {{name}}",
+    "importFailed": "Import failed: {{error}}",
+    "waitingForAuth": "Waiting for Google authorization…",
+    "enterCode": "If your browser did not pre-fill the code, enter:",
+    "retry": "Retry",
+    "logoutAll": "Remove all Google accounts",
+    "loginRequired": "Please sign in with your Google account first"
   },
   "managedAuth": {
     "accountRemoved": "Account removed",

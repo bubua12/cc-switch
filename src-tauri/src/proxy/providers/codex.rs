@@ -857,6 +857,10 @@ impl ProviderAdapter for CodexAdapter {
             return Ok(super::XAI_API_BASE_URL.to_string());
         }
 
+        if provider.is_google_oauth() {
+            return Ok("https://generativelanguage.googleapis.com".to_string());
+        }
+
         // 1. 尝试直接获取 base_url 字段
         if let Some(url) = provider
             .settings_config
@@ -913,6 +917,13 @@ impl ProviderAdapter for CodexAdapter {
             return Some(AuthInfo::new(
                 "xai_oauth_placeholder".to_string(),
                 AuthStrategy::XaiOAuth,
+            ));
+        }
+
+        if provider.is_google_oauth() {
+            return Some(AuthInfo::new(
+                "google_oauth_placeholder".to_string(),
+                AuthStrategy::GoogleOAuth,
             ));
         }
 

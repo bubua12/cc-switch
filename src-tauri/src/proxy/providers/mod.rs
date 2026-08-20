@@ -22,6 +22,7 @@ pub(crate) mod codex_responses_sse;
 pub mod copilot_auth;
 pub mod copilot_model_map;
 mod gemini;
+pub mod google_oauth_auth;
 pub(crate) mod gemini_schema;
 pub mod gemini_shadow;
 pub mod models;
@@ -90,6 +91,8 @@ pub enum ProviderType {
     CodexOAuth,
     /// xAI Grok OAuth（需要 Anthropic ↔ Responses API 转换）
     XaiOAuth,
+    /// Google Gemini OAuth（需要 Anthropic ↔ Gemini Native API 转换）
+    GoogleOAuth,
 }
 
 impl ProviderType {
@@ -104,6 +107,7 @@ impl ProviderType {
             ProviderType::GitHubCopilot => true,
             ProviderType::CodexOAuth => true,
             ProviderType::XaiOAuth => true,
+            ProviderType::GoogleOAuth => true,
             ProviderType::OpenRouter => false,
             _ => false,
         }
@@ -122,6 +126,7 @@ impl ProviderType {
             ProviderType::GitHubCopilot => "https://api.githubcopilot.com",
             ProviderType::CodexOAuth => CHATGPT_CODEX_BASE_URL,
             ProviderType::XaiOAuth => XAI_API_BASE_URL,
+            ProviderType::GoogleOAuth => "https://generativelanguage.googleapis.com",
         }
     }
 
@@ -152,6 +157,9 @@ impl ProviderType {
                     }
                     if meta.provider_type.as_deref() == Some("xai_oauth") {
                         return Some(ProviderType::XaiOAuth);
+                    }
+                    if meta.provider_type.as_deref() == Some("google_oauth") {
+                        return Some(ProviderType::GoogleOAuth);
                     }
                 }
 
@@ -225,6 +233,7 @@ impl ProviderType {
             ProviderType::GitHubCopilot => "github_copilot",
             ProviderType::CodexOAuth => "codex_oauth",
             ProviderType::XaiOAuth => "xai_oauth",
+            ProviderType::GoogleOAuth => "google_oauth",
         }
     }
 }
@@ -251,6 +260,7 @@ impl std::str::FromStr for ProviderType {
             }
             "codex_oauth" | "codex-oauth" | "codexoauth" => Ok(ProviderType::CodexOAuth),
             "xai_oauth" | "xai-oauth" | "xaioauth" => Ok(ProviderType::XaiOAuth),
+            "google_oauth" | "google-oauth" | "googleoauth" => Ok(ProviderType::GoogleOAuth),
             _ => Err(format!("Invalid provider type: {s}")),
         }
     }
@@ -277,7 +287,8 @@ pub fn get_adapter_for_provider_type(provider_type: &ProviderType) -> Box<dyn Pr
         | ProviderType::OpenRouter
         | ProviderType::GitHubCopilot
         | ProviderType::CodexOAuth
-        | ProviderType::XaiOAuth => Box::new(ClaudeAdapter::new()),
+        | ProviderType::XaiOAuth
+        | ProviderType::GoogleOAuth => Box::new(ClaudeAdapter::new()),
         ProviderType::Codex => Box::new(CodexAdapter::new()),
         ProviderType::Gemini | ProviderType::GeminiCli => Box::new(GeminiAdapter::new()),
     }

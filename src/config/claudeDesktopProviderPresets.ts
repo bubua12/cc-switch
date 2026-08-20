@@ -56,7 +56,7 @@ export interface ClaudeDesktopProviderPreset {
   mode: "direct" | "proxy";
   apiFormat?: ClaudeDesktopApiFormat;
   modelRoutes?: ClaudeDesktopRoutePreset[];
-  providerType?: "github_copilot" | "codex_oauth" | "xai_oauth";
+  providerType?: "github_copilot" | "codex_oauth" | "xai_oauth" | "google_oauth";
   requiresOAuth?: boolean;
 
   endpointCandidates?: string[];
@@ -862,6 +862,19 @@ export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
     modelRoutes: brandedRoutes("grok-4.5", "grok-4.5", "grok-4.5"),
     icon: "xai",
     iconColor: "#000000",
+  },
+  {
+    name: "Google AI (Gemini OAuth)",
+    websiteUrl: "https://ai.google.dev",
+    category: "official",
+    baseUrl: "https://generativelanguage.googleapis.com",
+    mode: "proxy",
+    apiFormat: "gemini_native",
+    providerType: "google_oauth",
+    requiresOAuth: true,
+    modelRoutes: brandedRoutes("gemini-2.5-pro", "gemini-2.5-pro", "gemini-2.5-pro"),
+    icon: "gemini",
+    iconColor: "#4285F4",
   },
   {
     name: "DeepSeek",

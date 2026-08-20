@@ -49,6 +49,9 @@ pub fn get_claude_api_format(provider: &Provider) -> &'static str {
         ) {
             return "openai_responses";
         }
+        if meta.provider_type.as_deref() == Some("google_oauth") {
+            return "gemini_native";
+        }
     }
 
     // 1) Preferred: meta.apiFormat (SSOT, never written to Claude Code config)
@@ -480,6 +483,10 @@ impl ClaudeAdapter {
     /// - ClaudeAuth: auth_mode 为 bearer_only
     /// - Claude: 默认 Anthropic 官方
     pub fn provider_type(&self, provider: &Provider) -> ProviderType {
+        if self.is_google_oauth(provider) {
+            return ProviderType::GoogleOAuth;
+        }
+
         // 检测 Gemini Native 格式
         if self.get_api_format(provider) == "gemini_native" {
             return match self.extract_key(provider) {
@@ -529,6 +536,10 @@ impl ClaudeAdapter {
 
     fn is_xai_oauth(&self, provider: &Provider) -> bool {
         provider.is_xai_oauth()
+    }
+
+    fn is_google_oauth(&self, provider: &Provider) -> bool {
+        provider.is_google_oauth()
     }
 
     /// 检测是否为 GitHub Copilot 供应商
@@ -715,6 +726,10 @@ impl ProviderAdapter for ClaudeAdapter {
             return Ok(super::XAI_API_BASE_URL.to_string());
         }
 
+        if self.is_google_oauth(provider) {
+            return Ok("https://generativelanguage.googleapis.com".to_string());
+        }
+
         // 1. 从 env 中获取
         if let Some(env) = provider.settings_config.get("env") {
             if let Some(url) = env.get("ANTHROPIC_BASE_URL").and_then(|v| v.as_str()) {
@@ -778,6 +793,13 @@ impl ProviderAdapter for ClaudeAdapter {
             return Some(AuthInfo::new(
                 "xai_oauth_placeholder".to_string(),
                 AuthStrategy::XaiOAuth,
+            ));
+        }
+
+        if provider_type == ProviderType::GoogleOAuth {
+            return Some(AuthInfo::new(
+                "google_oauth_placeholder".to_string(),
+                AuthStrategy::GoogleOAuth,
             ));
         }
 
@@ -980,6 +1002,10 @@ impl ProviderAdapter for ClaudeAdapter {
         }
 
         if self.is_xai_oauth(provider) {
+            return true;
+        }
+
+        if self.is_google_oauth(provider) {
             return true;
         }
 

@@ -47,6 +47,9 @@ impl GeminiAdapter {
     /// - GeminiCli: access_token (ya29. 开头) 或 JSON 格式凭证
     /// - Gemini: 普通 API Key
     pub fn provider_type(&self, provider: &Provider) -> ProviderType {
+        if provider.is_google_oauth() {
+            return ProviderType::GoogleOAuth;
+        }
         if let Some(key) = self.extract_key_raw(provider) {
             // OAuth access_token 以 ya29. 开头
             if key.starts_with("ya29.") {
@@ -62,8 +65,11 @@ impl GeminiAdapter {
 
     /// 检测认证类型
     pub fn detect_auth_type(&self, provider: &Provider) -> AuthStrategy {
+        if provider.is_google_oauth() {
+            return AuthStrategy::GoogleOAuth;
+        }
         match self.provider_type(provider) {
-            ProviderType::GeminiCli => AuthStrategy::GoogleOAuth,
+            ProviderType::GeminiCli | ProviderType::GoogleOAuth => AuthStrategy::GoogleOAuth,
             _ => AuthStrategy::Google,
         }
     }
@@ -163,6 +169,9 @@ impl ProviderAdapter for GeminiAdapter {
     }
 
     fn extract_base_url(&self, provider: &Provider) -> Result<String, ProxyError> {
+        if provider.is_google_oauth() {
+            return Ok("https://generativelanguage.googleapis.com".to_string());
+        }
         // 从 env 中获取
         if let Some(env) = provider.settings_config.get("env") {
             if let Some(url) = env.get("GOOGLE_GEMINI_BASE_URL").and_then(|v| v.as_str()) {
@@ -193,6 +202,12 @@ impl ProviderAdapter for GeminiAdapter {
     }
 
     fn extract_auth(&self, provider: &Provider) -> Option<AuthInfo> {
+        if provider.is_google_oauth() {
+            return Some(AuthInfo::new(
+                "google_oauth_placeholder".to_string(),
+                AuthStrategy::GoogleOAuth,
+            ));
+        }
         let key = self.extract_key_raw(provider)?;
         let strategy = self.detect_auth_type(provider);
 

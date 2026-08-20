@@ -350,7 +350,8 @@
       "beta": "Beta",
       "copilotDescription": "GitHub Copilot アカウントを管理します",
       "codexOauthDescription": "ChatGPT アカウントを管理します",
-      "xaiOauthDescription": "xAI / Grok アカウントを管理します"
+      "xaiOauthDescription": "xAI / Grok アカウントを管理します",
+      "googleOauthDescription": "Google / Gemini アカウントを管理します"
     },
     "advanced": {
       "configDir": {
@@ -1451,6 +1452,31 @@
     "retry": "再試行",
     "logoutAll": "すべての xAI アカウントを削除",
     "loginRequired": "先に xAI アカウントへログインしてください"
+  },
+  "googleOauth": {
+    "authStatus": "Google AI OAuth 認証",
+    "accountCount": "利用可能なアカウント: {{count}} 件",
+    "reauthRequired": "再ログインが必要です",
+    "notAuthenticated": "未認証",
+    "selectAccount": "アカウントを選択",
+    "selectAccountPlaceholder": "Google アカウントを選択",
+    "useDefaultAccount": "デフォルトアカウントを使用",
+    "accounts": "Google アカウント",
+    "defaultAccount": "デフォルト",
+    "expired": "認証情報が失効しました",
+    "setAsDefault": "デフォルトに設定",
+    "removeAccount": "アカウントを削除",
+    "addOrReauth": "アカウントを追加または再ログイン",
+    "login": "Google でログイン",
+    "importFromGeminiCli": "Gemini CLI からインポート",
+    "importLocalTooltip": "インストール済みの Gemini CLI からログイン認証情報を読み取ります",
+    "importSuccess": "Google アカウントをインポートしました: {{name}}",
+    "importFailed": "インポートに失敗しました: {{error}}",
+    "waitingForAuth": "Google の認証を待っています…",
+    "enterCode": "ブラウザに自動入力されていない場合は、次を入力してください：",
+    "retry": "再試行",
+    "logoutAll": "すべての Google アカウントを削除",
+    "loginRequired": "先に Google アカウントへログインしてください"
   },
   "managedAuth": {
     "accountRemoved": "アカウントを削除しました",

@@ -34,6 +34,7 @@ import {
 import { CopilotAuthSection } from "./CopilotAuthSection";
 import { CodexOAuthSection } from "./CodexOAuthSection";
 import { XaiOAuthSection } from "./XaiOAuthSection";
+import { GoogleOAuthSection } from "./GoogleOAuthSection";
 import {
   copilotGetModels,
   copilotGetModelsForAccount,
@@ -42,6 +43,7 @@ import type { CopilotModel } from "@/lib/api/copilot";
 import {
   fetchCodexOauthModels,
   fetchXaiOauthModels,
+  fetchGoogleOauthModels,
   fetchModelsForConfig,
   showFetchModelsError,
   type FetchedModel,
@@ -105,6 +107,11 @@ interface ClaudeFormFieldsProps {
   isXaiOauthAuthenticated?: boolean;
   selectedXaiAccountId?: string | null;
   onXaiAccountSelect?: (accountId: string | null) => void;
+  // Google OAuth
+  isGoogleOauthPreset?: boolean;
+  isGoogleOauthAuthenticated?: boolean;
+  selectedGoogleAccountId?: string | null;
+  onGoogleAccountSelect?: (accountId: string | null) => void;
 
   // Template Values
   templateValueEntries: Array<[string, TemplateValueConfig]>;
@@ -187,6 +194,10 @@ export function ClaudeFormFields({
   isXaiOauthAuthenticated,
   selectedXaiAccountId,
   onXaiAccountSelect,
+  isGoogleOauthPreset,
+  isGoogleOauthAuthenticated,
+  selectedGoogleAccountId,
+  onGoogleAccountSelect,
   templateValueEntries,
   templateValues,
   templatePresetName,
@@ -268,6 +279,9 @@ export function ClaudeFormFields({
   const [xaiOauthModels, setXaiOauthModels] = useState<FetchedModel[]>([]);
   const [xaiOauthModelsLoading, setXaiOauthModelsLoading] = useState(false);
   const xaiOauthModelsRequestRef = useRef(0);
+  const [googleOauthModels, setGoogleOauthModels] = useState<FetchedModel[]>([]);
+  const [googleOauthModelsLoading, setGoogleOauthModelsLoading] = useState(false);
+  const googleOauthModelsRequestRef = useRef(0);
   const fallbackUsesOneM = hasClaudeOneMMarker(claudeModel);
 
   // 通用模型获取（非 Copilot 供应商）
@@ -425,6 +439,37 @@ export function ClaudeFormFields({
       });
   }, [isXaiOauthAuthenticated, selectedXaiAccountId, showModelFetchResult, t]);
 
+  const handleFetchGoogleOauthModels = useCallback(() => {
+    if (!isGoogleOauthAuthenticated) {
+      toast.error(
+        t("googleOauth.loginRequired", {
+          defaultValue: "请先登录 Google 账号",
+        }),
+      );
+      return;
+    }
+
+    const requestId = googleOauthModelsRequestRef.current + 1;
+    googleOauthModelsRequestRef.current = requestId;
+    setGoogleOauthModelsLoading(true);
+    fetchGoogleOauthModels(selectedGoogleAccountId)
+      .then((models) => {
+        if (googleOauthModelsRequestRef.current !== requestId) return;
+        setGoogleOauthModels(models);
+        showModelFetchResult(models.length);
+      })
+      .catch((err) => {
+        if (googleOauthModelsRequestRef.current !== requestId) return;
+        console.warn("[GoogleOAuth] Failed to fetch models:", err);
+        showFetchModelsError(err, t);
+      })
+      .finally(() => {
+        if (googleOauthModelsRequestRef.current === requestId) {
+          setGoogleOauthModelsLoading(false);
+        }
+      });
+  }, [isGoogleOauthAuthenticated, selectedGoogleAccountId, showModelFetchResult, t]);
+
   useEffect(() => {
     copilotModelsRequestRef.current += 1;
     setCopilotModels([]);
@@ -442,6 +487,11 @@ export function ClaudeFormFields({
     setXaiOauthModels([]);
     setXaiOauthModelsLoading(false);
   }, [isXaiOauthPreset, isXaiOauthAuthenticated, selectedXaiAccountId]);
+  useEffect(() => {
+    googleOauthModelsRequestRef.current += 1;
+    setGoogleOauthModels([]);
+    setGoogleOauthModelsLoading(false);
+  }, [isGoogleOauthPreset, isGoogleOauthAuthenticated, selectedGoogleAccountId]);
 
   const modelFetchLoading = isCopilotPreset
     ? modelsLoading
@@ -449,14 +499,18 @@ export function ClaudeFormFields({
       ? codexOauthModelsLoading
       : isXaiOauthPreset
         ? xaiOauthModelsLoading
-        : isFetchingModels;
+        : isGoogleOauthPreset
+          ? googleOauthModelsLoading
+          : isFetchingModels;
   const handleModelFetchClick = isCopilotPreset
     ? handleFetchCopilotModels
     : isCodexOauthPreset
       ? handleFetchCodexOauthModels
       : isXaiOauthPreset
         ? handleFetchXaiOauthModels
-        : handleFetchModels;
+        : isGoogleOauthPreset
+          ? handleFetchGoogleOauthModels
+          : handleFetchModels;
 
   // 模型输入框：支持手动输入 + 下拉选择
   const renderModelInput = (
@@ -491,6 +545,19 @@ export function ClaudeFormFields({
           placeholder={placeholder}
           fetchedModels={xaiOauthModels}
           isLoading={xaiOauthModelsLoading}
+        />
+      );
+    }
+
+    if (isGoogleOauthPreset) {
+      return (
+        <ModelInputWithFetch
+          id={id}
+          value={value}
+          onChange={updateValue}
+          placeholder={placeholder}
+          fetchedModels={googleOauthModels}
+          isLoading={googleOauthModelsLoading}
         />
       );
     }
@@ -682,6 +749,13 @@ export function ClaudeFormFields({
         <XaiOAuthSection
           selectedAccountId={selectedXaiAccountId}
           onAccountSelect={onXaiAccountSelect}
+        />
+      )}
+
+      {isGoogleOauthPreset && (
+        <GoogleOAuthSection
+          selectedAccountId={selectedGoogleAccountId}
+          onAccountSelect={onGoogleAccountSelect}
         />
       )}
 

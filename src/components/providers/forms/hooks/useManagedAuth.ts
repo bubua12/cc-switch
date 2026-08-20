@@ -43,7 +43,10 @@ export function useManagedAuth(
     // A rejected xAI refresh token is persisted as `requires_reauth` by the
     // proxy hot path. Periodically refresh local status so an already-open Auth
     // Center stops showing the account as logged in without requiring a reload.
-    refetchInterval: authProvider === "xai_oauth" ? 15_000 : false,
+    refetchInterval:
+      authProvider === "xai_oauth" || authProvider === "google_oauth"
+        ? 15_000
+        : false,
   });
 
   const stopPolling = useCallback(() => {

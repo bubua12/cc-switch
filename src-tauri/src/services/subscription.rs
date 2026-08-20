@@ -791,6 +791,10 @@ type GeminiCredentials = (
 /// 2. 凭据文件 ~/.gemini/oauth_creds.json（遗留格式）
 ///
 /// 仅 OAuth 认证模式（`oauth-personal`）有效；API key 模式无法查询官方用量。
+pub(crate) fn read_gemini_credentials_raw() -> GeminiCredentials {
+    read_gemini_credentials()
+}
+
 fn read_gemini_credentials() -> GeminiCredentials {
     #[cfg(target_os = "macos")]
     {
@@ -1057,7 +1061,21 @@ fn classify_gemini_model(model_id: &str) -> &str {
 /// 两步 API 调用：
 /// 1. loadCodeAssist → 获取 cloudaicompanionProject
 /// 2. retrieveUserQuota → 获取按模型分桶的配额数据
+pub(crate) async fn query_gemini_quota_with_tool_label(
+    access_token: &str,
+    tool_label: &str,
+) -> Result<SubscriptionQuota, String> {
+    query_gemini_quota_impl(access_token, tool_label).await
+}
+
 async fn query_gemini_quota(access_token: &str) -> Result<SubscriptionQuota, String> {
+    query_gemini_quota_impl(access_token, "gemini").await
+}
+
+async fn query_gemini_quota_impl(
+    access_token: &str,
+    tool_label: &str,
+) -> Result<SubscriptionQuota, String> {
     let client = crate::proxy::http_client::get();
 
     // ── Step 1: loadCodeAssist 获取项目 ID ──
@@ -1218,7 +1236,7 @@ async fn query_gemini_quota(access_token: &str) -> Result<SubscriptionQuota, Str
     tiers.sort_by_key(|t| sort_order(&t.name));
 
     Ok(SubscriptionQuota {
-        tool: "gemini".to_string(),
+        tool: tool_label.to_string(),
         credential_status: CredentialStatus::Valid,
         credential_message: None,
         success: true,

@@ -60,7 +60,7 @@ export interface ProviderPreset {
   // 供应商类型标识（用于特殊供应商检测）
   // - "github_copilot": GitHub Copilot 供应商（需要 OAuth 认证）
   // - "codex_oauth": OpenAI Codex via ChatGPT Plus/Pro 反代（需要 OAuth 认证）
-  providerType?: "github_copilot" | "codex_oauth" | "xai_oauth";
+  providerType?: "github_copilot" | "codex_oauth" | "xai_oauth" | "google_oauth";
 
   // 是否需要 OAuth 认证（而非 API Key）
   requiresOAuth?: boolean;
@@ -1383,6 +1383,27 @@ export const providerPresets: ProviderPreset[] = [
     requiresOAuth: true,
     icon: "xai",
     iconColor: "#000000",
+  },
+  {
+    name: "Google AI (Gemini OAuth)",
+    websiteUrl: "https://ai.google.dev",
+    apiKeyUrl: "https://aistudio.google.com",
+    settingsConfig: {
+      env: {
+        ANTHROPIC_BASE_URL: "https://generativelanguage.googleapis.com",
+        ANTHROPIC_AUTH_TOKEN: "",
+        ANTHROPIC_MODEL: "gemini-2.5-pro",
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: "gemini-2.5-flash",
+        ANTHROPIC_DEFAULT_SONNET_MODEL: "gemini-2.5-pro",
+        ANTHROPIC_DEFAULT_OPUS_MODEL: "gemini-2.5-pro",
+      },
+    },
+    category: "official",
+    apiFormat: "gemini_native",
+    providerType: "google_oauth",
+    requiresOAuth: true,
+    icon: "gemini",
+    iconColor: "#4285F4",
   },
   {
     name: "Nvidia",

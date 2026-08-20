@@ -22,8 +22,9 @@ use super::{
     types::{CopilotOptimizerConfig, OptimizerConfig, ProxyStatus, RectifierConfig},
     ProxyError,
 };
-use crate::commands::{CodexOAuthState, CopilotAuthState, XaiOAuthState};
+use crate::commands::{CodexOAuthState, CopilotAuthState, GoogleOAuthState, XaiOAuthState};
 use crate::proxy::providers::copilot_auth::CopilotAuthManager;
+use crate::proxy::providers::google_oauth_auth::GoogleOAuthManager;
 use crate::proxy::providers::xai_oauth_auth::XaiOAuthManager;
 use crate::{
     app_config::AppType,
@@ -1161,7 +1162,8 @@ impl RequestForwarder {
             .and_then(|meta| meta.is_full_url)
             .unwrap_or(false)
             && !provider.is_codex_oauth()
-            && !provider.is_xai_oauth();
+            && !provider.is_xai_oauth()
+            && !provider.is_google_oauth();
 
         // GitHub Copilot API 使用 /chat/completions（无 /v1 前缀）
         let is_copilot = provider
@@ -1792,6 +1794,44 @@ impl RequestForwarder {
                 } else {
                     return Err(ProxyError::AuthError(
                         "xAI OAuth 认证不可用（无 AppHandle）".to_string(),
+                    ));
+                }
+            }
+
+            // Google OAuth: resolve a managed account token immediately before
+            // sending the request.
+            if auth.strategy == AuthStrategy::GoogleOAuth {
+                if let Some(app_handle) = &self.app_handle {
+                    let google_state = app_handle.state::<GoogleOAuthState>();
+                    let google_auth: tokio::sync::RwLockReadGuard<'_, GoogleOAuthManager> =
+                        google_state.0.read().await;
+                    let account_id = provider
+                        .meta
+                        .as_ref()
+                        .and_then(|meta| meta.managed_account_id_for("google_oauth"));
+                    let token_result = match &account_id {
+                        Some(id) => google_auth.get_valid_token_for_account(id).await,
+                        None => google_auth.get_valid_token().await,
+                    };
+                    match token_result {
+                        Ok(token) => {
+                            auth = AuthInfo::new(token.clone(), AuthStrategy::GoogleOAuth);
+                            auth.access_token = Some(token);
+                            log::debug!(
+                                "[GoogleOAuth] 成功获取 access_token (account={})",
+                                account_id.as_deref().unwrap_or("default")
+                            );
+                        }
+                        Err(error) => {
+                            log::error!("[GoogleOAuth] 获取 access_token 失败: {error}");
+                            return Err(ProxyError::AuthError(format!(
+                                "Google OAuth 认证失败: {error}"
+                            )));
+                        }
+                    }
+                } else {
+                    return Err(ProxyError::AuthError(
+                        "Google OAuth 认证不可用（无 AppHandle）".to_string(),
                     ));
                 }
             }
@@ -2697,7 +2737,7 @@ impl RequestForwarder {
         // AuthError means the managed account needs re-login. Failing over
         // would silently move the conversation off the selected Grok account
         // and poison the provider's health state for an account-level issue.
-        if provider.is_xai_oauth() && matches!(error, ProxyError::AuthError(_)) {
+        if (provider.is_xai_oauth() || provider.is_google_oauth()) && matches!(error, ProxyError::AuthError(_)) {
             return ErrorCategory::NonRetryable;
         }
 
@@ -3360,7 +3400,7 @@ fn should_preserve_exact_header_case(
         return false;
     }
 
-    if is_copilot || provider.is_codex_oauth() || provider.is_xai_oauth() {
+    if is_copilot || provider.is_codex_oauth() || provider.is_xai_oauth() || provider.is_google_oauth() {
         return false;
     }
 

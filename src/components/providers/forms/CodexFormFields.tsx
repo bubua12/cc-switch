@@ -44,9 +44,11 @@ import EndpointSpeedTest from "./EndpointSpeedTest";
 import { CodexOAuthSection } from "./CodexOAuthSection";
 import { ApiKeySection, EndpointField, ModelDropdown } from "./shared";
 import { XaiOAuthSection } from "./XaiOAuthSection";
+import { GoogleOAuthSection } from "./GoogleOAuthSection";
 import {
   fetchModelsForConfig,
   fetchXaiOauthModels,
+  fetchGoogleOauthModels,
   showFetchModelsError,
   type FetchedModel,
 } from "@/lib/api/model-fetch";
@@ -76,6 +78,11 @@ interface CodexFormFieldsProps {
   isXaiOauthAuthenticated?: boolean;
   selectedXaiAccountId?: string | null;
   onXaiAccountSelect?: (accountId: string | null) => void;
+  // Google OAuth 托管预设（Gemini 订阅）：隐藏 API Key / 端点输入，挂账号选择区块
+  isGoogleOauthPreset?: boolean;
+  isGoogleOauthAuthenticated?: boolean;
+  selectedGoogleAccountId?: string | null;
+  onGoogleAccountSelect?: (accountId: string | null) => void;
   // API Key
   codexApiKey: string;
   onApiKeyChange: (key: string) => void;
@@ -371,6 +378,10 @@ export function CodexFormFields({
   isXaiOauthAuthenticated,
   selectedXaiAccountId,
   onXaiAccountSelect,
+  isGoogleOauthPreset = false,
+  isGoogleOauthAuthenticated = false,
+  selectedGoogleAccountId,
+  onGoogleAccountSelect,
   codexApiKey,
   onApiKeyChange,
   category,
@@ -583,6 +594,38 @@ export function CodexFormFields({
         .finally(() => setIsFetchingModels(false));
       return;
     }
+    // Google OAuth 托管预设：直接用托管账号 token 拉取
+    if (isGoogleOauthPreset) {
+      if (!isGoogleOauthAuthenticated) {
+        toast.error(
+          t("googleOauth.loginRequired", {
+            defaultValue: "请先登录 Google 账号",
+          }),
+        );
+        return;
+      }
+      const seq = ++fetchModelsSeqRef.current;
+      setIsFetchingModels(true);
+      fetchGoogleOauthModels(selectedGoogleAccountId ?? null)
+        .then((models) => {
+          if (seq !== fetchModelsSeqRef.current) return;
+          setFetchedModels(models);
+          if (models.length === 0) {
+            toast.info(t("providerForm.fetchModelsEmpty"));
+          } else {
+            toast.success(
+              t("providerForm.fetchModelsSuccess", { count: models.length }),
+            );
+          }
+        })
+        .catch((err) => {
+          if (seq !== fetchModelsSeqRef.current) return;
+          console.warn("[GoogleOAuth] Failed to fetch models:", err);
+          showFetchModelsError(err, t);
+        })
+        .finally(() => setIsFetchingModels(false));
+      return;
+    }
 
     if (!codexBaseUrl || !codexApiKey) {
       showFetchModelsError(null, t, {
@@ -751,9 +794,16 @@ export function CodexFormFields({
           onAccountSelect={onXaiAccountSelect}
         />
       )}
+      {/* Google OAuth 认证（Gemini 订阅托管账号） */}
+      {isGoogleOauthPreset && (
+        <GoogleOAuthSection
+          selectedAccountId={selectedGoogleAccountId}
+          onAccountSelect={onGoogleAccountSelect}
+        />
+      )}
 
       {/* Codex API Key 输入框（托管 OAuth 预设无需 Key） */}
-      {!isCodexOauthPreset && !isXaiOauthPreset && (
+      {!isCodexOauthPreset && !isXaiOauthPreset && !isGoogleOauthPreset && (
         <ApiKeySection
           id="codexApiKey"
           label="API Key"
@@ -776,7 +826,7 @@ export function CodexFormFields({
       )}
 
       {/* Codex Base URL 输入框（托管 OAuth 端点由 adapter 硬定向，不展示） */}
-      {shouldShowSpeedTest && !isXaiOauthPreset && (
+      {shouldShowSpeedTest && !isXaiOauthPreset && !isGoogleOauthPreset && (
         <EndpointField
           id="codexBaseUrl"
           label={t("codexConfig.apiUrlLabel")}

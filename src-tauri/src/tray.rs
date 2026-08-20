@@ -1152,6 +1152,7 @@ pub(crate) async fn refresh_all_usage_in_tray(app: &tauri::AppHandle) {
             let state = app.state::<AppState>();
             let copilot_state = app.state::<CopilotAuthState>();
             let xai_state = app.state::<crate::commands::XaiOAuthState>();
+            let google_state = app.state::<crate::commands::GoogleOAuthState>();
             let provider_id = current_id.clone();
             let app_str = app_type_str.to_string();
             script_futures.push(async move {
@@ -1160,6 +1161,7 @@ pub(crate) async fn refresh_all_usage_in_tray(app: &tauri::AppHandle) {
                     state,
                     copilot_state,
                     xai_state,
+                    google_state,
                     provider_id.clone(),
                     app_str,
                 )

@@ -74,6 +74,10 @@ impl Provider {
     pub fn is_xai_oauth(&self) -> bool {
         self.provider_type() == Some("xai_oauth")
     }
+    pub fn is_google_oauth(&self) -> bool {
+        self.provider_type() == Some("google_oauth")
+    }
+
 
     pub fn is_github_copilot(&self) -> bool {
         self.provider_type() == Some("github_copilot")
@@ -84,6 +88,7 @@ impl Provider {
         self.is_github_copilot()
             || self.is_codex_oauth()
             || self.is_xai_oauth()
+            || self.is_google_oauth()
             || self.claude_base_url_contains("chatgpt.com/backend-api/codex")
     }
 
