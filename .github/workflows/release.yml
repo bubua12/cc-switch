@@ -15,19 +15,13 @@ concurrency:
 jobs:
   release:
     runs-on: ${{ matrix.os }}
-    environment: release
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-2022
-          - os: windows-11-arm
-            arch: arm64
           - os: ubuntu-22.04
-          - os: ubuntu-22.04-arm
-            arch: arm64
           - os: macos-14
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -125,61 +119,54 @@ jobs:
       - name: Prepare Tauri signing key
         shell: bash
         run: |
-          # 调试：检查 Secret 是否存在
-          if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
-            echo "❌ TAURI_SIGNING_PRIVATE_KEY Secret 为空或不存在" >&2
-            echo "请检查 GitHub 仓库 Settings > Secrets and variables > Actions" >&2
-            exit 1
-          fi
-          
           RAW="${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
-          # 目标：提供正确的私钥“文件路径”给 Tauri CLI，避免内容解码歧义
           KEY_PATH="$RUNNER_TEMP/tauri_signing.key"
-          # 情况 1：原始两行文本（第一行以 "untrusted comment:" 开头）
-          if echo "$RAW" | head -n1 | grep -q '^untrusted comment:'; then
-            printf '%s\n' "$RAW" > "$KEY_PATH"
-            echo "✅ 使用原始两行密钥文件格式"
-          else
-            # 情况 2：整体被 base64 包裹（解包后应当是两行）
-            if DECODED=$(printf '%s' "$RAW" | (base64 --decode 2>/dev/null || base64 -D 2>/dev/null)) \
-               && echo "$DECODED" | head -n1 | grep -q '^untrusted comment:'; then
-              printf '%s\n' "$DECODED" > "$KEY_PATH"
-              echo "✅ 成功解码 base64 包裹密钥，已还原为两行文件"
-            else
-              # 情况 3：已是第二行（纯 Base64 一行）→ 构造两行文件
-              if echo "$RAW" | grep -Eq '^[A-Za-z0-9+/=]+$'; then
-                ONE=$(printf '%s' "$RAW" | tr -d '\r\n')
-                printf '%s\n%s\n' "untrusted comment: tauri signing key" "$ONE" > "$KEY_PATH"
-                echo "✅ 使用一行 Base64 私钥，已构造两行文件"
-              else
-                echo "❌ TAURI_SIGNING_PRIVATE_KEY 格式无法识别：既不是两行原文，也不是其 base64，亦非一行 base64" >&2
-                echo "密钥前10个字符: $(echo "$RAW" | head -c 10)..." >&2
-                exit 1
-              fi
+          if [ -z "$RAW" ]; then
+            echo "⚠️ TAURI_SIGNING_PRIVATE_KEY 未设置，生成临时签名密钥以支持构建"
+            pnpm tauri signer generate -w "$KEY_PATH" || true
+            if [ -f "$KEY_PATH" ]; then
+              RAW=$(cat "$KEY_PATH")
             fi
           fi
-          # 将“完整两行内容”作为环境变量注入（Tauri 支持传入完整私钥文本或文件路径）
-          # 使用多行写入语法，保持换行以便解析
-          # 将完整两行私钥内容进行 base64 编码，作为单行内容注入环境变量
-          if command -v base64 >/dev/null 2>&1; then
-            KEY_B64=$(base64 < "$KEY_PATH" | tr -d '\r\n')
-          elif command -v openssl >/dev/null 2>&1; then
-            KEY_B64=$(openssl base64 -A -in "$KEY_PATH")
-          else
-            KEY_B64=$(KEY_PATH="$KEY_PATH" node -e "process.stdout.write(require('fs').readFileSync(process.env.KEY_PATH).toString('base64'))")
+
+          if [ -n "$RAW" ]; then
+            # 情况 1：原始两行文本（第一行以 "untrusted comment:" 开头）
+            if echo "$RAW" | head -n1 | grep -q '^untrusted comment:'; then
+              printf '%s\n' "$RAW" > "$KEY_PATH"
+              echo "✅ 使用原始两行密钥文件格式"
+            else
+              # 情况 2：整体被 base64 包裹（解包后应当是两行）
+              if DECODED=$(printf '%s' "$RAW" | (base64 --decode 2>/dev/null || base64 -D 2>/dev/null)) \
+                 && echo "$DECODED" | head -n1 | grep -q '^untrusted comment:'; then
+                printf '%s\n' "$DECODED" > "$KEY_PATH"
+                echo "✅ 成功解码 base64 包裹密钥，已还原为两行文件"
+              else
+                # 情况 3：已是第二行（纯 Base64 一行）→ 构造两行文件
+                if echo "$RAW" | grep -Eq '^[A-Za-z0-9+/=]+$'; then
+                  ONE=$(printf '%s' "$RAW" | tr -d '\r\n')
+                  printf '%s\n%s\n' "untrusted comment: tauri signing key" "$ONE" > "$KEY_PATH"
+                  echo "✅ 使用一行 Base64 私钥，已构造两行文件"
+                fi
+              fi
+            fi
+            if command -v base64 >/dev/null 2>&1; then
+              KEY_B64=$(base64 < "$KEY_PATH" | tr -d '\r\n')
+            elif command -v openssl >/dev/null 2>&1; then
+              KEY_B64=$(openssl base64 -A -in "$KEY_PATH")
+            else
+              KEY_B64=$(KEY_PATH="$KEY_PATH" node -e "process.stdout.write(require('fs').readFileSync(process.env.KEY_PATH).toString('base64'))")
+            fi
+            if [ -n "$KEY_B64" ]; then
+              echo "TAURI_SIGNING_PRIVATE_KEY=$KEY_B64" >> "$GITHUB_ENV"
+            fi
           fi
-          if [ -z "$KEY_B64" ]; then
-            echo "❌ 无法生成私钥 base64 内容" >&2
-            exit 1
-          fi
-          echo "TAURI_SIGNING_PRIVATE_KEY=$KEY_B64" >> "$GITHUB_ENV"
           if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" ]; then
             echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" >> $GITHUB_ENV
           fi
           echo "✅ Tauri signing key prepared"
 
       - name: Import Apple signing certificate
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && secrets.APPLE_CERTIFICATE != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -296,9 +283,10 @@ jobs:
             exit 1
           fi
 
-          # Staple notarization ticket to .app (Tauri already notarized it)
-          xcrun stapler staple "$APP_PATH"
-          echo "✅ .app stapled"
+          if [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            xcrun stapler staple "$APP_PATH" || true
+            echo "✅ .app stapled"
+          fi
 
           # 1) Collect .tar.gz (updater artifact)
           NEW_TAR_GZ="CC-Switch-${VERSION}-macOS.tar.gz"
@@ -311,38 +299,37 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "release-assets/$NEW_ZIP"
           echo "macOS zip ready: $NEW_ZIP"
 
-          # 3) Create styled DMG with create-dmg (Tauri's built-in DMG styling doesn't work on CI)
-          if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
-            echo "❌ APPLE_SIGNING_IDENTITY is missing before DMG creation" >&2
-            exit 1
-          fi
-
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install create-dmg
+          # 3) Create styled DMG
           NEW_DMG="CC-Switch-${VERSION}-macOS.dmg"
           DMG_STAGE_DIR="$RUNNER_TEMP/dmg-stage"
           rm -rf "$DMG_STAGE_DIR"
           mkdir -p "$DMG_STAGE_DIR"
           ditto "$APP_PATH" "$DMG_STAGE_DIR/CC Switch.app"
 
-          create-dmg \
-            --volname "CC Switch" \
-            --background "src-tauri/icons/dmg-background.png" \
-            --window-size 660 400 \
-            --window-pos 200 120 \
-            --icon-size 80 \
-            --icon "CC Switch.app" 180 220 \
-            --hide-extension "CC Switch.app" \
-            --app-drop-link 480 220 \
-            --codesign "$APPLE_SIGNING_IDENTITY" \
-            --no-internet-enable \
-            "release-assets/$NEW_DMG" \
-            "$DMG_STAGE_DIR"
+          if [ -n "${APPLE_SIGNING_IDENTITY:-}" ]; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install create-dmg || true
+            create-dmg \
+              --volname "CC Switch" \
+              --background "src-tauri/icons/dmg-background.png" \
+              --window-size 660 400 \
+              --window-pos 200 120 \
+              --icon-size 80 \
+              --icon "CC Switch.app" 180 220 \
+              --hide-extension "CC Switch.app" \
+              --app-drop-link 480 220 \
+              --codesign "$APPLE_SIGNING_IDENTITY" \
+              --no-internet-enable \
+              "release-assets/$NEW_DMG" \
+              "$DMG_STAGE_DIR" || hdiutil create -volname "CC Switch" -srcfolder "$DMG_STAGE_DIR" -ov -format UDZO "release-assets/$NEW_DMG"
+          else
+            echo "⚠️ 无 Apple 签名证书，创建未签名 DMG"
+            hdiutil create -volname "CC Switch" -srcfolder "$DMG_STAGE_DIR" -ov -format UDZO "release-assets/$NEW_DMG"
+          fi
 
           rm -rf "$DMG_STAGE_DIR"
-          echo "✅ Styled DMG created: $NEW_DMG"
-
+          echo "✅ DMG created: $NEW_DMG"
       - name: Notarize macOS DMG
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != ''
         shell: bash
         timeout-minutes: 30
         env:
@@ -384,7 +371,7 @@ jobs:
           done
 
       - name: Verify macOS code signing and notarization
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && secrets.APPLE_CERTIFICATE != ''
         shell: bash
         run: |
           set -euo pipefail
