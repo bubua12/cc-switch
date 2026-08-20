@@ -729,7 +729,8 @@ async fn query_provider_usage_inner(
             let account_id = provider
                 .and_then(|p| p.meta.as_ref())
                 .and_then(|m| m.managed_account_id_for("google_oauth"));
-            crate::commands::google_oauth::query_google_oauth_quota_for(google_state, account_id).await?
+            crate::commands::google_oauth::query_google_oauth_quota_for(google_state, account_id)
+                .await?
         } else {
             crate::services::subscription::get_subscription_quota(app_type.as_str())
                 .await

@@ -43,11 +43,7 @@ pub(crate) async fn query_google_oauth_quota_for(
         }
     };
 
-    crate::services::subscription::query_gemini_quota_with_tool_label(
-        &token,
-        "google_oauth",
-    )
-    .await
+    crate::services::subscription::query_gemini_quota_with_tool_label(&token, "google_oauth").await
 }
 
 /// 查询 Google OAuth 订阅额度
@@ -62,10 +58,6 @@ pub async fn get_google_oauth_quota(
 #[derive(Debug, Deserialize)]
 struct GeminiModelItem {
     name: String,
-    #[serde(default)]
-    display_name: Option<String>,
-    #[serde(default)]
-    description: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -109,7 +101,11 @@ pub async fn get_google_oauth_models(
                     .models
                     .into_iter()
                     .map(|m| {
-                        let id = m.name.strip_prefix("models/").unwrap_or(&m.name).to_string();
+                        let id = m
+                            .name
+                            .strip_prefix("models/")
+                            .unwrap_or(&m.name)
+                            .to_string();
                         FetchedModel {
                             id,
                             owned_by: Some("google".to_string()),

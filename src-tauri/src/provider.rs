@@ -78,7 +78,6 @@ impl Provider {
         self.provider_type() == Some("google_oauth")
     }
 
-
     pub fn is_github_copilot(&self) -> bool {
         self.provider_type() == Some("github_copilot")
             || self.claude_base_url_contains("githubcopilot.com")

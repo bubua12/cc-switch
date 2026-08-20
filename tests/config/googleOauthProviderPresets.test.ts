@@ -5,7 +5,6 @@ import { codexProviderPresets } from "@/config/codexProviderPresets";
 import {
   extractCodexBaseUrl,
   extractCodexModelName,
-  extractCodexWireApi,
 } from "@/utils/providerConfigUtils";
 
 describe("Google AI OAuth provider presets", () => {

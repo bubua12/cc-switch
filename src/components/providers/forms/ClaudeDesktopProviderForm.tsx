@@ -58,7 +58,12 @@ import {
 } from "@/lib/api/providers";
 import { resolveManagedAccountId } from "@/lib/authBinding";
 import type { ManagedAuthProvider } from "@/lib/api";
-import { useCopilotAuth, useCodexOauth, useXaiOauth, useGoogleOauth } from "./hooks";
+import {
+  useCopilotAuth,
+  useCodexOauth,
+  useXaiOauth,
+  useGoogleOauth,
+} from "./hooks";
 import { isOAuthProviderType } from "@/config/constants";
 
 export type ClaudeDesktopProviderFormValues = ProviderFormData & {
@@ -672,16 +677,16 @@ export function ClaudeDesktopProviderForm({
                   defaultValue: "请先登录 xAI 账号",
                 }),
               }
-        : activeProviderType === "google_oauth"
-          ? {
-              authenticated: isGoogleOauthAuthenticated,
-              accountId: selectedGoogleAccountId,
-              accounts: googleOauthAccounts,
-              loginMessage: t("googleOauth.loginRequired", {
-                defaultValue: "请先登录 Google 账号",
-              }),
-            }
-            : null;
+            : activeProviderType === "google_oauth"
+              ? {
+                  authenticated: isGoogleOauthAuthenticated,
+                  accountId: selectedGoogleAccountId,
+                  accounts: googleOauthAccounts,
+                  loginMessage: t("googleOauth.loginRequired", {
+                    defaultValue: "请先登录 Google 账号",
+                  }),
+                }
+              : null;
     if (managedAuthState && !managedAuthState.authenticated) {
       toast.error(managedAuthState.loginMessage);
       return;
@@ -828,13 +833,13 @@ export function ClaudeDesktopProviderForm({
                 authProvider: "xai_oauth",
                 accountId: selectedXaiAccountId ?? undefined,
               }
-        : activeProviderType === "google_oauth"
-          ? {
-              source: "managed_account",
-              authProvider: "google_oauth",
-              accountId: selectedGoogleAccountId ?? undefined,
-            }
-            : undefined;
+            : activeProviderType === "google_oauth"
+              ? {
+                  source: "managed_account",
+                  authProvider: "google_oauth",
+                  accountId: selectedGoogleAccountId ?? undefined,
+                }
+              : undefined;
     meta.codexFastMode =
       activeProviderType === "codex_oauth" ? codexFastMode : undefined;
 
@@ -1048,49 +1053,51 @@ export function ClaudeDesktopProviderForm({
 
               {needsModelMapping && (
                 <div className="space-y-4 border-t border-border-default pt-4">
-                  {activeProviderType !== "xai_oauth" && activeProviderType !== "google_oauth" && (
-                    <div className="space-y-2">
-                      <Label>
-                        {t("providerForm.apiFormat", {
-                          defaultValue: "上游格式",
-                        })}
-                      </Label>
-                      <Select
-                        value={apiFormat}
-                        onValueChange={(value) =>
-                          setApiFormat(value as ClaudeApiFormat)
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="anthropic">
-                            {t("providerForm.apiFormatAnthropic", {
-                              defaultValue: "Anthropic Messages (原生)",
-                            })}
-                          </SelectItem>
-                          <SelectItem value="openai_chat">
-                            {t("providerForm.apiFormatOpenAIChat", {
-                              defaultValue:
-                                "OpenAI Chat Completions (需开启路由)",
-                            })}
-                          </SelectItem>
-                          <SelectItem value="openai_responses">
-                            {t("providerForm.apiFormatOpenAIResponses", {
-                              defaultValue: "OpenAI Responses API (需开启路由)",
-                            })}
-                          </SelectItem>
-                          <SelectItem value="gemini_native">
-                            {t("providerForm.apiFormatGeminiNative", {
-                              defaultValue:
-                                "Gemini Native generateContent (需开启路由)",
-                            })}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  {activeProviderType !== "xai_oauth" &&
+                    activeProviderType !== "google_oauth" && (
+                      <div className="space-y-2">
+                        <Label>
+                          {t("providerForm.apiFormat", {
+                            defaultValue: "上游格式",
+                          })}
+                        </Label>
+                        <Select
+                          value={apiFormat}
+                          onValueChange={(value) =>
+                            setApiFormat(value as ClaudeApiFormat)
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="anthropic">
+                              {t("providerForm.apiFormatAnthropic", {
+                                defaultValue: "Anthropic Messages (原生)",
+                              })}
+                            </SelectItem>
+                            <SelectItem value="openai_chat">
+                              {t("providerForm.apiFormatOpenAIChat", {
+                                defaultValue:
+                                  "OpenAI Chat Completions (需开启路由)",
+                              })}
+                            </SelectItem>
+                            <SelectItem value="openai_responses">
+                              {t("providerForm.apiFormatOpenAIResponses", {
+                                defaultValue:
+                                  "OpenAI Responses API (需开启路由)",
+                              })}
+                            </SelectItem>
+                            <SelectItem value="gemini_native">
+                              {t("providerForm.apiFormatGeminiNative", {
+                                defaultValue:
+                                  "Gemini Native generateContent (需开启路由)",
+                              })}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                   <div className="space-y-3">
                     <div className="space-y-1 border-t border-border-default pt-4">

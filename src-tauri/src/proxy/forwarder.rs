@@ -2737,7 +2737,9 @@ impl RequestForwarder {
         // AuthError means the managed account needs re-login. Failing over
         // would silently move the conversation off the selected Grok account
         // and poison the provider's health state for an account-level issue.
-        if (provider.is_xai_oauth() || provider.is_google_oauth()) && matches!(error, ProxyError::AuthError(_)) {
+        if (provider.is_xai_oauth() || provider.is_google_oauth())
+            && matches!(error, ProxyError::AuthError(_))
+        {
             return ErrorCategory::NonRetryable;
         }
 
@@ -3400,7 +3402,11 @@ fn should_preserve_exact_header_case(
         return false;
     }
 
-    if is_copilot || provider.is_codex_oauth() || provider.is_xai_oauth() || provider.is_google_oauth() {
+    if is_copilot
+        || provider.is_codex_oauth()
+        || provider.is_xai_oauth()
+        || provider.is_google_oauth()
+    {
         return false;
     }
 

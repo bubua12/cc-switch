@@ -29,7 +29,8 @@ pub const GOOGLE_DEVICE_CODE_URL: &str = "https://oauth2.googleapis.com/device/c
 pub const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 #[allow(dead_code)]
 pub const GOOGLE_USERINFO_URL: &str = "https://www.googleapis.com/oauth2/v3/userinfo";
-pub const GOOGLE_SCOPE: &str = "openid email profile https://www.googleapis.com/auth/cloud-platform";
+pub const GOOGLE_SCOPE: &str =
+    "openid email profile https://www.googleapis.com/auth/cloud-platform";
 pub const GOOGLE_USER_AGENT: &str = "cc-switch-google-oauth";
 
 const TOKEN_REFRESH_BUFFER_MS: i64 = 60_000;
@@ -87,10 +88,6 @@ struct DeviceCodeResponse {
     expires_in: u64,
     #[serde(default = "default_poll_interval")]
     interval: u64,
-}
-
-fn default_device_code_expires_in() -> u64 {
-    1800
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -346,9 +343,12 @@ impl GoogleOAuthManager {
             .ok_or_else(|| {
                 GoogleOAuthError::TokenFetchFailed("成功响应缺少 refresh_token".to_string())
             })?;
-        let (account_id, login, avatar_url) = extract_identity_from_tokens(&tokens).ok_or_else(|| {
-            GoogleOAuthError::ParseError("Google token 缺少稳定的 sub claim，未保存账号".to_string())
-        })?;
+        let (account_id, login, avatar_url) =
+            extract_identity_from_tokens(&tokens).ok_or_else(|| {
+                GoogleOAuthError::ParseError(
+                    "Google token 缺少稳定的 sub claim，未保存账号".to_string(),
+                )
+            })?;
 
         let cached_access_token = CachedAccessToken {
             token: tokens.access_token,
@@ -378,9 +378,10 @@ impl GoogleOAuthManager {
             .as_deref()
             .unwrap_or(refresh_token)
             .to_string();
-        let (account_id, login, avatar_url) = extract_identity_from_tokens(&tokens).ok_or_else(|| {
-            GoogleOAuthError::ParseError("Google token 无法解析身份信息".to_string())
-        })?;
+        let (account_id, login, avatar_url) =
+            extract_identity_from_tokens(&tokens).ok_or_else(|| {
+                GoogleOAuthError::ParseError("Google token 无法解析身份信息".to_string())
+            })?;
 
         let cached_access_token = CachedAccessToken {
             token: tokens.access_token,
@@ -689,17 +690,24 @@ impl GoogleOAuthManager {
 
     async fn schedule_next_poll(&self, device_code: &str, interval_secs: u64) {
         if let Some(entry) = self.pending_device_codes.write().await.get_mut(device_code) {
-            entry.next_poll_at_ms = chrono::Utc::now()
-                .timestamp_millis()
-                .saturating_add(i64::try_from(interval_secs).unwrap_or(5).saturating_mul(1_000));
+            entry.next_poll_at_ms = chrono::Utc::now().timestamp_millis().saturating_add(
+                i64::try_from(interval_secs)
+                    .unwrap_or(5)
+                    .saturating_mul(1_000),
+            );
         }
     }
 
     async fn increase_poll_interval(&self, device_code: &str) {
         if let Some(entry) = self.pending_device_codes.write().await.get_mut(device_code) {
-            entry.interval_secs = entry.interval_secs.saturating_add(5).min(MAX_POLL_INTERVAL_SECS);
+            entry.interval_secs = entry
+                .interval_secs
+                .saturating_add(5)
+                .min(MAX_POLL_INTERVAL_SECS);
             entry.next_poll_at_ms = chrono::Utc::now().timestamp_millis().saturating_add(
-                i64::try_from(entry.interval_secs).unwrap_or(5).saturating_mul(1_000),
+                i64::try_from(entry.interval_secs)
+                    .unwrap_or(5)
+                    .saturating_mul(1_000),
             );
         }
     }
@@ -707,7 +715,9 @@ impl GoogleOAuthManager {
     async fn cached_token_for_usable_account(&self, account_id: &str) -> Option<String> {
         let is_usable = {
             let accounts = self.accounts.read().await;
-            accounts.get(account_id).is_some_and(|account| !account.requires_reauth)
+            accounts
+                .get(account_id)
+                .is_some_and(|account| !account.requires_reauth)
         };
         if !is_usable {
             return None;
@@ -756,7 +766,8 @@ impl GoogleOAuthManager {
         accounts: &HashMap<String, GoogleAccountData>,
         default_account_id: Option<&str>,
     ) -> Vec<GoogleOAuthAccount> {
-        let mut list: Vec<GoogleOAuthAccount> = accounts.values().map(GoogleOAuthAccount::from).collect();
+        let mut list: Vec<GoogleOAuthAccount> =
+            accounts.values().map(GoogleOAuthAccount::from).collect();
         list.sort_by(|left, right| {
             let left_is_default = default_account_id == Some(&left.id);
             let right_is_default = default_account_id == Some(&right.id);
@@ -914,8 +925,15 @@ fn extract_identity_from_tokens(
         .or_else(|| parse_jwt_claims(&tokens.access_token));
 
     if let Some(claims) = claims {
-        if let Some(account_id) = claims.sub.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()) {
-            let login = claims.email.or(claims.name).filter(|v| !v.trim().is_empty());
+        if let Some(account_id) = claims
+            .sub
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+        {
+            let login = claims
+                .email
+                .or(claims.name)
+                .filter(|v| !v.trim().is_empty());
             return Some((account_id, login, claims.picture));
         }
     }

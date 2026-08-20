@@ -279,8 +279,11 @@ export function ClaudeFormFields({
   const [xaiOauthModels, setXaiOauthModels] = useState<FetchedModel[]>([]);
   const [xaiOauthModelsLoading, setXaiOauthModelsLoading] = useState(false);
   const xaiOauthModelsRequestRef = useRef(0);
-  const [googleOauthModels, setGoogleOauthModels] = useState<FetchedModel[]>([]);
-  const [googleOauthModelsLoading, setGoogleOauthModelsLoading] = useState(false);
+  const [googleOauthModels, setGoogleOauthModels] = useState<FetchedModel[]>(
+    [],
+  );
+  const [googleOauthModelsLoading, setGoogleOauthModelsLoading] =
+    useState(false);
   const googleOauthModelsRequestRef = useRef(0);
   const fallbackUsesOneM = hasClaudeOneMMarker(claudeModel);
 
@@ -468,7 +471,12 @@ export function ClaudeFormFields({
           setGoogleOauthModelsLoading(false);
         }
       });
-  }, [isGoogleOauthAuthenticated, selectedGoogleAccountId, showModelFetchResult, t]);
+  }, [
+    isGoogleOauthAuthenticated,
+    selectedGoogleAccountId,
+    showModelFetchResult,
+    t,
+  ]);
 
   useEffect(() => {
     copilotModelsRequestRef.current += 1;
@@ -491,7 +499,11 @@ export function ClaudeFormFields({
     googleOauthModelsRequestRef.current += 1;
     setGoogleOauthModels([]);
     setGoogleOauthModelsLoading(false);
-  }, [isGoogleOauthPreset, isGoogleOauthAuthenticated, selectedGoogleAccountId]);
+  }, [
+    isGoogleOauthPreset,
+    isGoogleOauthAuthenticated,
+    selectedGoogleAccountId,
+  ]);
 
   const modelFetchLoading = isCopilotPreset
     ? modelsLoading

@@ -56,7 +56,11 @@ export interface ClaudeDesktopProviderPreset {
   mode: "direct" | "proxy";
   apiFormat?: ClaudeDesktopApiFormat;
   modelRoutes?: ClaudeDesktopRoutePreset[];
-  providerType?: "github_copilot" | "codex_oauth" | "xai_oauth" | "google_oauth";
+  providerType?:
+    | "github_copilot"
+    | "codex_oauth"
+    | "xai_oauth"
+    | "google_oauth";
   requiresOAuth?: boolean;
 
   endpointCandidates?: string[];
@@ -872,7 +876,11 @@ export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
     apiFormat: "gemini_native",
     providerType: "google_oauth",
     requiresOAuth: true,
-    modelRoutes: brandedRoutes("gemini-2.5-pro", "gemini-2.5-pro", "gemini-2.5-pro"),
+    modelRoutes: brandedRoutes(
+      "gemini-2.5-pro",
+      "gemini-2.5-pro",
+      "gemini-2.5-pro",
+    ),
     icon: "gemini",
     iconColor: "#4285F4",
   },
